@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# lumen-sync - wrapper for lumen-sync.py
+# Ensures proper execution and forwards arguments
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON_SCRIPT="$SCRIPT_DIR/lumen-sync.py"
+
+if [[ ! -f "$PYTHON_SCRIPT" ]]; then
+    echo "Error: lumen-sync.py not found at $PYTHON_SCRIPT" >&2
+    exit 1
+fi
+
+# Optional: check for API key
+if [[ -z "${LUMEN_API_KEY}" ]]; then
+    echo "Warning: LUMEN_API_KEY environment variable is not set." >&2
+    echo "Please set it before running this script." >&2
+    # We'll still let the python script handle the error.
+fi
+
+exec python3 "$PYTHON_SCRIPT" "$@"

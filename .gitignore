@@ -1,0 +1,10 @@
+# lumen-sync backups
+*.lumen-sync-backup-*
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db

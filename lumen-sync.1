@@ -1,0 +1,96 @@
+.TH LUMEN-SYNC 1 "August 6, 2026" "User Commands"
+.SH NAME
+lumen-sync \- Sync the opencode lumen provider with the live NCSA Lumen catalog
+.SH SYNOPSIS
+lumen-sync [OPTIONS]
+.SH DESCRIPTION
+lumen-sync is a shell wrapper for lumen-sync.py that synchronizes the opencode \fBlumen\fP provider configuration with the live NCSA Lumen model catalog. It queries the Lumen API at \fBhttps://lumen.ncsa.illinois.edu/v1/models\fP and updates the \fIopencode.json\fP configuration file accordingly.
+
+The tool adds real models from Lumen (with context/cost metadata), removes phantom entries not present in the Lumen catalog, and leaves other providers in the configuration untouched.
+
+By default, lumen-sync performs a dry-run showing what changes would be made without modifying any files. Use the \fB--apply\fP flag to actually update the configuration.
+.SH OPTIONS
+.TP
+\fB--apply\fP
+Write changes to opencode.json. A timestamped backup is created automatically (opencode.json.lumen-sync-backup-YYYYMMDD-HHMMSS).
+.TP
+\fB--list\fP
+Print the live Lumen catalog with model names, context windows, and pricing, then exit. No changes are made to opencode.json.
+.TP
+\fB--no-prune\fP
+When used with \fB--apply\fP, adds/updates models from Lumen but preserves existing opencode.json entries that are not present in the Lumen catalog (disables pruning).
+.TP
+\fB--help\fP
+Display help message and exit.
+.TP
+\fB--version\fP
+Print version information and exit.
+.SH ENVIRONMENT
+.TP
+\fBLUMEN_API_KEY\fP
+Required. Must be set to your NCSA Lumen API key. The script reads this from the environment for API authentication and never writes it to configuration files.
+Set it in your shell profile (e.g., ~/.bashrc, ~/.zshrc) for persistent access:
+    export LUMEN_API_KEY=your_actual_key_here
+.SH FILES
+.TP
+\fI~/lumen-sync.py\fP
+The underlying Python script that performs the actual synchronization (stdlib only).
+.TP
+\fI~/lumen-sync\fP
+This shell wrapper script (forwards all arguments to lumen-sync.py).
+.TP
+\fI~/.config/opencode/opencode.json\fP
+The opencode configuration file that gets modified (when using \fB--apply\fP).
+.TP
+\fIopencode.json.lumen-sync-backup-*.\fP
+Timestamped backups created automatically before applying changes.
+.SH EXAMPLES
+.PP
+Preview what changes would be made (dry-run):
+    lumen-sync
+.PP
+Apply changes to opencode.json (creates automatic backup):
+    lumen-sync --apply
+.PP
+View the current Lumen model catalog:
+    lumen-sync --list
+.PP
+Apply changes but keep existing config entries not in Lumen:
+    lumen-sync --apply --no-prune
+.PP
+Set up persistent API key (add to your shell profile):
+    echo 'export LUMEN_API_KEY=your_key_here' >> ~/.zshrc
+    source ~/.zshrc
+.SH EXIT STATUS
+0   Success.
+1   Error (e.g., missing API key, network issues, or file permissions).
+2   Invalid command-line usage.
+.SH SEE ALSO
+opencode(1)
+.SH AUTHOR
+Written by JK Henry.
+.SH BUGS
+Report issues at <https://github.com/jkhenry-illinois/lumen-sync/issues>.
+.SH COPYRIGHT
+Copyright © 2026 JK Henry
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+.SH VERSION
+This man page documents lumen-sync version 1.0.0 (experimental).
+Last reviewed: 2026-08-06

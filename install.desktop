@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Install lumen-sync
+Comment=Install the lumen-sync tool and man page
+Exec=bash -c 'cd "$(dirname "%k")" && ./install.sh; echo ""; echo "Press Enter to close..."; read'
+Icon=utilities-terminal
+Terminal=true
+Categories=System;Utility;
