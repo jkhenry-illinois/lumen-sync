@@ -1,72 +1,109 @@
-.TH LUMEN-SYNC 1 "August 6, 2026" "User Commands"
+.TH LUMEN-SYNC 1 "September 18, 2026" "User Commands"
 .SH NAME
-lumen-sync \- Sync the opencode lumen provider with the live NCSA Lumen catalog
+lumen-sync \- Sync opencode and pi coding-agent configs with the live NCSA Lumen catalog
 .SH SYNOPSIS
 lumen-sync [OPTIONS]
 .SH DESCRIPTION
-lumen-sync is a shell wrapper for lumen-sync.py that synchronizes the opencode \fBlumen\fP provider configuration with the live NCSA Lumen model catalog. It queries the Lumen API at \fBhttps://lumen.ncsa.illinois.edu/v1/models\fP and updates the \fIopencode.json\fP configuration file accordingly.
+lumen-sync queries the NCSA Lumen API at \fBhttps://lumen.ncsa.illinois.edu/v1/models\fP and reconciles the Lumen provider configuration in one or both supported coding harnesses:
 
-The tool adds real models from Lumen (with context/cost metadata), removes phantom entries not present in the Lumen catalog, and leaves other providers in the configuration untouched.
+.RS 4
+.IP \(bu 3
+opencode: the \fIprovider.lumen.models\fP block in \fI~/.config/opencode/opencode.json\fP
+.IP \(bu 3
+pi: the \fIproviders.ncsa-lumen.models\fP list in \fI~/.pi/agent/models.json\fP
+.RE
 
-By default, lumen-sync performs a dry-run showing what changes would be made without modifying any files. Use the \fB--apply\fP flag to actually update the configuration.
+It adds real models from the live catalog (with context/cost metadata), removes phantom entries Lumen no longer lists, and leaves everything else (other providers, auth, extensions, settings) untouched.
+
+By default lumen-sync performs a dry-run showing what would change without writing anything. Use \fB--apply\fP to write. Each target file is backed up with a timestamp before writing and restored automatically if the written file fails to re-parse.
+
+Config files are fingerprinted when read. If a file changes between the read and the write (another terminal or agent session editing it, or the harness rewriting its own config), \fB--apply\fP refuses to write and exits without modifying anything; re-run to pick up the new state.
+
+Since version 2.0.0 the default target is \fBboth\fP harnesses. Use \fB--target opencode\fP for the version 1.x behavior.
 .SH OPTIONS
 .TP
 \fB--apply\fP
-Write changes to opencode.json. A timestamped backup is created automatically (opencode.json.lumen-sync-backup-YYYYMMDD-HHMMSS).
+Write changes to the target config files. Timestamped backups are created automatically.
+.TP
+\fB--target {both,opencode,pi}\fP
+Which harness config to sync (default: \fBboth\fP).
 .TP
 \fB--list\fP
-Print the live Lumen catalog with model names, context windows, and pricing, then exit. No changes are made to opencode.json.
+Print the live Lumen catalog with model names, context windows, and pricing, then exit. No changes are made.
 .TP
 \fB--no-prune\fP
-When used with \fB--apply\fP, adds/updates models from Lumen but preserves existing opencode.json entries that are not present in the Lumen catalog (disables pruning).
+When used with \fB--apply\fP, adds/updates models from Lumen but preserves configured entries that are not present in the Lumen catalog (disables pruning).
+.TP
+\fB--config \fIPATH\fR
+Path to opencode.json (default: \fI~/.config/opencode/opencode.json\fP).
+.TP
+\fB--provider-key \fIKEY\fR
+Provider key inside opencode.json (default: \fBlumen\fP).
+.TP
+\fB--pi-config \fIPATH\fR
+Path to pi models.json (default: \fI~/.pi/agent/models.json\fP).
+.TP
+\fB--pi-provider \fIKEY\fR
+Provider key inside pi models.json (default: \fBncsa-lumen\fP).
+.TP
+\fB--pi-settings \fIPATH\fR
+Path to pi settings.json, checked so the pi default model is updated if it disappears from the catalog (default: \fI~/.pi/agent/settings.json\fP).
+.TP
+\fB--base-url \fIURL\fR
+Lumen API endpoint (default: \fBhttps://lumen.ncsa.illinois.edu/v1\fP).
+.TP
+\fB-q, --quiet\fP
+Suppress non-error output (good for cron).
 .TP
 \fB--help\fP
 Display help message and exit.
-.TP
-\fB--version\fP
-Print version information and exit.
 .SH ENVIRONMENT
 .TP
 \fBLUMEN_API_KEY\fP
-Required. Must be set to your NCSA Lumen API key. The script reads this from the environment for API authentication and never writes it to configuration files.
-Set it in your shell profile (e.g., ~/.bashrc, ~/.zshrc) for persistent access:
+Required. Your NCSA Lumen API key, read from the environment for API calls. Set it in your shell profile (e.g., ~/.zshrc):
     export LUMEN_API_KEY=your_actual_key_here
+.SH AUTH NOTES
+The tool never modifies opencode's \fIoptions.apiKey\fP (which may be a literal key or a \fB{env:LUMEN_API_KEY}\fP reference).
+
+pi does not support environment-variable references for custom providers, so its \fIapiKey\fP is a literal value in \fImodels.json\fP. The tool preserves any existing key and enforces file mode 600 on every write. If it creates the pi provider fresh (no existing config), it writes the key from \fB$LUMEN_API_KEY\fP, again mode 600.
 .SH FILES
 .TP
-\fI~/lumen-sync.py\fP
-The underlying Python script that performs the actual synchronization (stdlib only).
-.TP
-\fI~/lumen-sync\fP
-This shell wrapper script (forwards all arguments to lumen-sync.py).
-.TP
 \fI~/.config/opencode/opencode.json\fP
-The opencode configuration file that gets modified (when using \fB--apply\fP).
+opencode configuration (modified with \fB--apply\fP, target opencode or both).
 .TP
-\fIopencode.json.lumen-sync-backup-*.\fP
-Timestamped backups created automatically before applying changes.
+\fI~/.pi/agent/models.json\fP
+pi provider/model catalog (modified with \fB--apply\fP, target pi or both; always written mode 600).
+.TP
+\fI~/.pi/agent/settings.json\fP
+pi settings; only rewritten if the configured default model vanished from the catalog.
+.TP
+\fI*.lumen-sync-backup-YYYYMMDD-HHMMSS\fP
+Timestamped backups created before every write.
 .SH EXAMPLES
 .PP
-Preview what changes would be made (dry-run):
+Preview changes for both harnesses (dry-run):
     lumen-sync
 .PP
-Apply changes to opencode.json (creates automatic backup):
+Apply to both (automatic timestamped backups):
     lumen-sync --apply
+.PP
+Only pi:
+    lumen-sync --target pi --apply
+.PP
+Only opencode (version 1.x behavior):
+    lumen-sync --target opencode --apply
 .PP
 View the current Lumen model catalog:
     lumen-sync --list
 .PP
-Apply changes but keep existing config entries not in Lumen:
+Apply but keep entries Lumen no longer lists:
     lumen-sync --apply --no-prune
-.PP
-Set up persistent API key (add to your shell profile):
-    echo 'export LUMEN_API_KEY=your_key_here' >> ~/.zshrc
-    source ~/.zshrc
 .SH EXIT STATUS
 0   Success.
-1   Error (e.g., missing API key, network issues, or file permissions).
+1   Error (missing API key, network issues, file permissions, or a failed write that was rolled back).
 2   Invalid command-line usage.
 .SH SEE ALSO
-opencode(1)
+opencode(1), pi(1)
 .SH AUTHOR
 Written by JK Henry.
 .SH BUGS
@@ -92,5 +129,5 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 .SH VERSION
-This man page documents lumen-sync version 1.0.0 (experimental).
-Last reviewed: 2026-08-06
+This man page documents lumen-sync version 2.0.1.
+Last reviewed: 2026-09-18
